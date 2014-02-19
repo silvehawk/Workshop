@@ -9,9 +9,8 @@ var app = {
 
 	registerEvents : function() {
 		var self = this;
-		// Check if browser supports touch events...
+
 		if (document.documentElement.hasOwnProperty('ontouchstart')) {
-			// ... if yes: register touch event listener to change the "selected" state of the item
 			$('body').on('touchstart', 'a', function(event) {
 				$(event.target).addClass('tappable-active');
 			});
@@ -19,7 +18,6 @@ var app = {
 				$(event.target).removeClass('tappable-active');
 			});
 		} else {
-			// ... if not: register mouse events instead
 			$('body').on('mousedown', 'a', function(event) {
 				$(event.target).addClass('tappable-active');
 			});
@@ -31,17 +29,54 @@ var app = {
 	},
 
 	route : function() {
+		var self = this;
 		var hash = window.location.hash;
 		if (!hash) {
-			$('body').html(new HomeView(this.store).render().el);
+			if (this.homePage) {
+				this.slidePage(this.homePage);
+			} else {
+				this.homePage = new HomeView(this.store).render();
+				this.slidePage(this.homePage);
+			}
 			return;
 		}
-		var match = hash.match(app.detailsURL);
+		var match = hash.match(this.detailsURL);
 		if (match) {
 			this.store.findById(Number(match[1]), function(employee) {
-				$('body').html(new EmployeeView(employee).render().el);
+				self.slidePage(new EmployeeView(employee).render());
 			});
 		}
+	},
+
+	slidePage : function(page) {
+		var currentPageDest;
+		self = this;
+		if (!this.currentPage) {
+			$(page.el).attr('class', 'page stage-center');
+			$('body').append(page.el);
+			this.currentPage = page;
+			return;
+		}
+
+		$('.stage-right', '.stage-left').not('.homePage').remove();
+
+		if (page == app.homePage) {
+			$(page.el).attr('class', 'page stage-left');
+			currentPageDest = "stage-right";
+		} else {
+			$(page.el).attr('class', 'page stage-right');
+			currentPageDest = "stage-left";
+		}
+
+		$('body').append(page.el);
+
+		setTimeout(function() {
+			// Slide out the current page: If new page slides from the right -> slide current page to the left, and vice versa
+			$(self.currentPage.el).attr('class', 'page transition ' + currentPageDest);
+			// Slide in the new page
+			$(page.el).attr('class', 'page stage-center transition');
+			self.currentPage = page;
+		});
 	},
 
 	initialize : function() {
